@@ -1,0 +1,37 @@
+현대자동차 챗봇 1편 https://rimo.tistory.com/42
+현대 자동차 사용 설명서를 기반으로 질의응답이 가능한 챗봇 만들기
+
+1. 로드 및 분할
+1) 현대자동차 챗봇을 위해 현대자동차 고객지원 사이트에서 차량 사용 설명서를 다운로드합니다.
+https://www.hyundai.com/kr/ko/digital-customer-support/helpdesk/download-center
+
+# load documents
+documents = SimpleDirectoryReader("file_path",recursive=True, exclude_hidden=True).load_data()
+splitter = SentenceSplitter(chunk_size=1024)
+nodes = splitter.get_nodes_from_documents(documents)
+
+2. 임베딩 및 저장소
+vector_store = MilvusVectorStore(
+    uri="<http://localhost:19530>", collection_name = "hyundaiRag", dim=3072, similarity_metric="COSINE")
+    
+storage_context = StorageContext.from_defaults(vector_store=vector_store)
+
+index = VectorStoreIndex(nodes, embed_model=embed_model, storage_context=storage_context)
+
+3. 검색기
+1) 유사한 node 3개 검색하기
+vector_search = index.as_retriever(similarity_top_k=3)
+nodes = vector_search.retrieve("타이어가 펑크났어. 해결책을 알려줘")
+for node in nodes:
+    print(node)
+
+4. 프롬프트 및 LLM
+1) 사용자의 query와 검색된 node들을 활용해 프롬프트를 만들고, LLM에게 답변을 생성해달라고 요청
+ llm = OpenAI(model="gpt-4o")
+rag_engine = index.as_query_engine(similarity_top_k=3, llm=llm)
+
+response = rag_engine.query("창문에 서리가 자꾸 껴")
+print(response.response)
+print("====")
+for node in response.source_nodes:
+    print(node)
