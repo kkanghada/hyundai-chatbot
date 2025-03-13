@@ -6,6 +6,15 @@ import random
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "https://hyundai-chatbot.vercel.app"}})  # CORS 활성화
 
+
+# preflight 요청에 대한 헤더 추가
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
+    
 # 현대자동차 모델 리스트
 car_models = {
     "승용": ["아반떼", "쏘나타", "그랜저", "아이오닉5", "아이오닉6"],
