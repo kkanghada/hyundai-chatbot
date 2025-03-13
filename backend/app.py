@@ -4,7 +4,7 @@ import json
 import random
 
 app = Flask(__name__)
-CORS(app)  # CORS 활성화
+CORS(app, resources={r"/*": {"origins": "https://hyundai-chatbot.vercel.app"}})  # CORS 활성화
 
 # 현대자동차 모델 리스트
 car_models = {
