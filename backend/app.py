@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import json
 import random
+import logging
 
 app = Flask(__name__)
 # 특정 프론트엔드 도메인만 허용하는 CORS 설정
