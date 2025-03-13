@@ -6,7 +6,6 @@ import random
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "https://hyundai-chatbot.vercel.app"}})  # CORS 활성화
 
-
 # preflight 요청에 대한 헤더 추가
 @app.after_request
 def after_request(response):
@@ -14,7 +13,7 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
     return response
-    
+
 # 현대자동차 모델 리스트
 car_models = {
     "승용": ["아반떼", "쏘나타", "그랜저", "아이오닉5", "아이오닉6"],
@@ -39,11 +38,13 @@ def keyboard():
         'buttons': ['차량 정보', '자주 묻는 질문', '상담원 연결']
     })
 
-@app.route('/message', methods=['POST'])
+# POST와 함께 OPTIONS 메소드도 허용
+@app.route('/message', methods=['POST', 'OPTIONS'])
 def message():
-    """
-    사용자가 보낸 메시지를 처리하고 응답을 생성합니다.
-    """
+    # preflight 요청(OPTIONS) 처리
+    if request.method == 'OPTIONS':
+        return app.make_default_options_response()
+    
     # 사용자가 보낸 메시지 받기
     content = request.get_json()
     user_message = content['content']
@@ -92,4 +93,4 @@ def message():
     return jsonify(response)
 
 if __name__ == "__main__":
-    app.run(debug=True) 
+    app.run(debug=True)
