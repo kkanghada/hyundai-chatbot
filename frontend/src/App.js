@@ -10,13 +10,12 @@ import {
   ListItemText,
   CircularProgress
 } from '@mui/material';
-import axios from 'axios';
 
 function App() {
   const [messages, setMessages] = useState([]);
   const [buttons, setButtons] = useState(['차량 정보', '자주 묻는 질문', '상담원 연결']);
   const [loading, setLoading] = useState(false);
-
+  const BACKEND_URL = 'https://hyundai-chatbot-backend.onrender.com';
   // 메시지 전송 함수
   const sendMessage = async (content) => {
     try {
@@ -25,13 +24,13 @@ function App() {
       setMessages(prev => [...prev, { text: content, sender: 'user' }]);
 
       // 서버에 메시지 전송
-      const response = await axios.post('http://localhost:5000/message', {
-        content: content
-      }, {
-        timeout: 5000, // 5초 타임아웃 설정
+      const response = await fetch(`${BACKEND_URL}/message`, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ content })
       });
 
       // 봇 응답 추가
