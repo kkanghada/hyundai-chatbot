@@ -5,11 +5,13 @@ import random
 
 app = Flask(__name__)
 # 특정 프론트엔드 도메인만 허용하는 CORS 설정
-CORS(app, resources={r"/*": {"origins": "https://hyundai-chatbot.vercel.app"}})
+CORS(app)  # 모든 도메인 허용
+# CORS(app, resources={r"/*": {"origins": "https://hyundai-chatbot.vercel.app"}})
 
 # after_request 핸들러 (모든 응답에 CORS 헤더 추가)
 @app.after_request
 def after_request(response):
+    logging.info("after_request 호출됨")
     response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
