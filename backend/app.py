@@ -1,5 +1,4 @@
 from flask import Flask, jsonify, request
-from flask_cors import CORS
 import json
 import random
 import logging
@@ -10,12 +9,10 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# CORS 설정 제거 (수동으로 처리)
-# CORS(app, origins=["https://hyundai-chatbot.vercel.app"])
-
-# CORS 헤더를 추가하는 함수
+# 모든 응답에 CORS 헤더 추가
+@app.after_request
 def add_cors_headers(response):
-    response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
+    response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
     return response
@@ -54,8 +51,7 @@ def message():
     # OPTIONS 요청 처리
     if request.method == 'OPTIONS':
         logger.info("OPTIONS /message 요청 받음")
-        response = app.make_default_options_response()
-        return add_cors_headers(response)
+        return '', 200
         
     # POST 요청 처리
     logger.info("POST /message 요청 받음")
@@ -104,11 +100,10 @@ def message():
         }
 
         logger.info(f"응답: {response_data}")
-        response = jsonify(response_data)
-        return add_cors_headers(response)
+        return jsonify(response_data)
     except Exception as e:
         logger.error(f"오류 발생: {str(e)}")
-        error_response = jsonify({
+        return jsonify({
             'message': {
                 'text': '죄송합니다. 서버 오류가 발생했습니다.'
             },
@@ -117,21 +112,18 @@ def message():
                 'buttons': ['차량 정보', '자주 묻는 질문', '상담원 연결']
             }
         })
-        return add_cors_headers(error_response)
 
 # 루트 경로 추가
 @app.route('/', methods=['GET'])
 def index():
     logger.info("GET / 요청 받음")
-    response = jsonify({"status": "ok", "message": "현대자동차 챗봇 API 서버가 실행 중입니다."})
-    return add_cors_headers(response)
+    return jsonify({"status": "ok", "message": "현대자동차 챗봇 API 서버가 실행 중입니다."})
 
 # 상태 확인 엔드포인트 추가
 @app.route('/health', methods=['GET'])
 def health():
     logger.info("GET /health 요청 받음")
-    response = jsonify({"status": "healthy"})
-    return add_cors_headers(response)
+    return jsonify({"status": "healthy"})
 
 if __name__ == "__main__":
     import os

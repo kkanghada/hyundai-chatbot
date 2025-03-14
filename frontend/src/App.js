@@ -54,40 +54,50 @@ function App() {
   }, []);
   
   // 재시도 함수
-  const fetchWithRetry = async (url, options, maxRetries = 3) => {
+  const fetchWithRetry = async (url, options, maxRetries = 5) => {
     let retries = 0;
+    let lastError = null;
     
     while (retries < maxRetries) {
       try {
-        const response = await fetch(url, options);
+        console.log(`요청 시도 중... (${retries + 1}/${maxRetries})`);
+        const response = await fetch(url, {
+          ...options,
+          // 캐시 방지
+          headers: {
+            ...options.headers,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
         
         if (response.ok) {
           return await response.json();
         }
         
-        if (response.status === 502) {
-          // 502 오류 시 재시도
-          console.log(`502 오류 발생, 재시도 중... (${retries + 1}/${maxRetries})`);
-          retries++;
-          // 재시도 전 잠시 대기
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          continue;
-        }
+        console.log(`HTTP 오류: ${response.status}`);
+        lastError = new Error(`HTTP error! status: ${response.status}`);
         
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // 모든 오류에 대해 재시도
+        retries++;
+        // 재시도 간격을 점점 늘림 (exponential backoff)
+        const delay = Math.min(1000 * Math.pow(2, retries), 10000);
+        console.log(`${delay}ms 후 재시도...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       } catch (error) {
-        if (retries === maxRetries - 1) {
-          throw error;
-        }
+        console.log(`네트워크 오류: ${error.message}`);
+        lastError = error;
         
         retries++;
-        console.log(`오류 발생, 재시도 중... (${retries}/${maxRetries})`);
-        // 재시도 전 잠시 대기
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 재시도 간격을 점점 늘림 (exponential backoff)
+        const delay = Math.min(1000 * Math.pow(2, retries), 10000);
+        console.log(`${delay}ms 후 재시도...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
     
-    throw new Error('최대 재시도 횟수 초과');
+    throw lastError || new Error('최대 재시도 횟수 초과');
   };
   
   // 메시지 전송 함수
@@ -106,7 +116,11 @@ function App() {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ content }),
+        // 캐시 방지
+        cache: 'no-store',
+        credentials: 'omit',
+        mode: 'cors'
       });
 
       console.log('서버 응답:', data);
