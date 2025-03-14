@@ -4,10 +4,21 @@ import json
 import random
 import logging
 
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
 
 # CORS 설정 제거 (수동으로 처리)
 # CORS(app, origins=["https://hyundai-chatbot.vercel.app"])
+
+# CORS 헤더를 추가하는 함수
+def add_cors_headers(response):
+    response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
 
 # 차량 모델 데이터
 car_models = {
@@ -30,83 +41,100 @@ faq = {
 # /keyboard 엔드포인트 정의
 @app.route('/keyboard', methods=['GET'])
 def keyboard():
+    logger.info("GET /keyboard 요청 받음")
     response = jsonify({
         'type': 'buttons',
         'buttons': ['차량 정보', '자주 묻는 질문', '상담원 연결']
     })
-    response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-    return response
+    return add_cors_headers(response)
 
 # /message 엔드포인트 정의
 @app.route('/message', methods=['POST', 'OPTIONS'])
 def message():
     # OPTIONS 요청 처리
     if request.method == 'OPTIONS':
+        logger.info("OPTIONS /message 요청 받음")
         response = app.make_default_options_response()
-        response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        return response
+        return add_cors_headers(response)
         
     # POST 요청 처리
-    content = request.get_json()
-    user_message = content.get('content', '')
+    logger.info("POST /message 요청 받음")
+    try:
+        content = request.get_json()
+        user_message = content.get('content', '')
+        logger.info(f"사용자 메시지: {user_message}")
 
-    response_message = "죄송합니다. 이해하지 못했습니다."
-    response_buttons = ['차량 정보', '자주 묻는 질문', '상담원 연결']
-
-    if user_message == "차량 정보":
-        response_message = "어떤 차종에 관심이 있으신가요?"
-        response_buttons = list(car_models.keys()) + ['처음으로']
-    elif user_message in car_models:
-        cars = car_models[user_message]
-        response_message = f"{user_message} 차량 라인업입니다:\n" + "\n".join(cars)
-        response_buttons = ['다른 차종 보기', '처음으로']
-    elif user_message == "다른 차종 보기":
-        response_message = "어떤 차종에 관심이 있으신가요?"
-        response_buttons = list(car_models.keys()) + ['처음으로']
-    elif user_message == "자주 묻는 질문":
-        response_message = "어떤 내용이 궁금하신가요?"
-        response_buttons = list(faq.keys()) + ['처음으로']
-    elif user_message in faq:
-        response_message = faq[user_message]
-        response_buttons = ['다른 질문 보기', '처음으로']
-    elif user_message == "다른 질문 보기":
-        response_message = "어떤 내용이 궁금하신가요?"
-        response_buttons = list(faq.keys()) + ['처음으로']
-    elif user_message == "상담원 연결":
-        response_message = "상담원과 연결을 원하시면 1588-5678로 전화주시기 바랍니다."
-        response_buttons = ['처음으로']
-    elif user_message == "처음으로":
-        response_message = "무엇을 도와드릴까요?"
+        response_message = "죄송합니다. 이해하지 못했습니다."
         response_buttons = ['차량 정보', '자주 묻는 질문', '상담원 연결']
 
-    response_data = {
-        'message': {
-            'text': response_message
-        },
-        'keyboard': {
-            'type': 'buttons',
-            'buttons': response_buttons
-        }
-    }
+        if user_message == "차량 정보":
+            response_message = "어떤 차종에 관심이 있으신가요?"
+            response_buttons = list(car_models.keys()) + ['처음으로']
+        elif user_message in car_models:
+            cars = car_models[user_message]
+            response_message = f"{user_message} 차량 라인업입니다:\n" + "\n".join(cars)
+            response_buttons = ['다른 차종 보기', '처음으로']
+        elif user_message == "다른 차종 보기":
+            response_message = "어떤 차종에 관심이 있으신가요?"
+            response_buttons = list(car_models.keys()) + ['처음으로']
+        elif user_message == "자주 묻는 질문":
+            response_message = "어떤 내용이 궁금하신가요?"
+            response_buttons = list(faq.keys()) + ['처음으로']
+        elif user_message in faq:
+            response_message = faq[user_message]
+            response_buttons = ['다른 질문 보기', '처음으로']
+        elif user_message == "다른 질문 보기":
+            response_message = "어떤 내용이 궁금하신가요?"
+            response_buttons = list(faq.keys()) + ['처음으로']
+        elif user_message == "상담원 연결":
+            response_message = "상담원과 연결을 원하시면 1588-5678로 전화주시기 바랍니다."
+            response_buttons = ['처음으로']
+        elif user_message == "처음으로":
+            response_message = "무엇을 도와드릴까요?"
+            response_buttons = ['차량 정보', '자주 묻는 질문', '상담원 연결']
 
-    response = jsonify(response_data)
-    response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-    return response
+        response_data = {
+            'message': {
+                'text': response_message
+            },
+            'keyboard': {
+                'type': 'buttons',
+                'buttons': response_buttons
+            }
+        }
+
+        logger.info(f"응답: {response_data}")
+        response = jsonify(response_data)
+        return add_cors_headers(response)
+    except Exception as e:
+        logger.error(f"오류 발생: {str(e)}")
+        error_response = jsonify({
+            'message': {
+                'text': '죄송합니다. 서버 오류가 발생했습니다.'
+            },
+            'keyboard': {
+                'type': 'buttons',
+                'buttons': ['차량 정보', '자주 묻는 질문', '상담원 연결']
+            }
+        })
+        return add_cors_headers(error_response)
 
 # 루트 경로 추가
 @app.route('/', methods=['GET'])
 def index():
+    logger.info("GET / 요청 받음")
     response = jsonify({"status": "ok", "message": "현대자동차 챗봇 API 서버가 실행 중입니다."})
-    response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
-    return response
+    return add_cors_headers(response)
+
+# 상태 확인 엔드포인트 추가
+@app.route('/health', methods=['GET'])
+def health():
+    logger.info("GET /health 요청 받음")
+    response = jsonify({"status": "healthy"})
+    return add_cors_headers(response)
 
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
+    logger.info(f"서버 시작: 포트 {port}")
     app.run(host="0.0.0.0", port=port, debug=True)

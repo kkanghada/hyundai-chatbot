@@ -8,7 +8,9 @@ import {
   List,
   ListItem,
   ListItemText,
-  CircularProgress
+  CircularProgress,
+  Snackbar,
+  Alert
 } from '@mui/material';
 
 function App() {
@@ -16,6 +18,7 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [buttons, setButtons] = useState(['차량 정보', '자주 묻는 질문', '상담원 연결']);
   const [loading, setLoading] = useState(false);
+  const [errorAlert, setErrorAlert] = useState({ open: false, message: '' });
   const BACKEND_URL = 'https://hyundai-chatbot-backend.onrender.com';
   
   // 초기 연결 확인
@@ -33,14 +36,59 @@ function App() {
           console.log('서버 연결 성공');
         } else {
           console.error('서버 연결 실패:', response.status);
+          setErrorAlert({ 
+            open: true, 
+            message: `서버 연결 실패 (${response.status}). 잠시 후 다시 시도해주세요.` 
+          });
         }
       } catch (error) {
         console.error('서버 연결 오류:', error);
+        setErrorAlert({ 
+          open: true, 
+          message: '서버 연결 오류. 잠시 후 다시 시도해주세요.' 
+        });
       }
     };
     
     checkConnection();
   }, []);
+  
+  // 재시도 함수
+  const fetchWithRetry = async (url, options, maxRetries = 3) => {
+    let retries = 0;
+    
+    while (retries < maxRetries) {
+      try {
+        const response = await fetch(url, options);
+        
+        if (response.ok) {
+          return await response.json();
+        }
+        
+        if (response.status === 502) {
+          // 502 오류 시 재시도
+          console.log(`502 오류 발생, 재시도 중... (${retries + 1}/${maxRetries})`);
+          retries++;
+          // 재시도 전 잠시 대기
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+        
+        throw new Error(`HTTP error! status: ${response.status}`);
+      } catch (error) {
+        if (retries === maxRetries - 1) {
+          throw error;
+        }
+        
+        retries++;
+        console.log(`오류 발생, 재시도 중... (${retries}/${maxRetries})`);
+        // 재시도 전 잠시 대기
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    throw new Error('최대 재시도 횟수 초과');
+  };
   
   // 메시지 전송 함수
   const sendMessage = async (content) => {
@@ -52,7 +100,7 @@ function App() {
 
       // 서버에 메시지 전송
       console.log("********** hyundai3 **********");
-      const response = await fetch(`${BACKEND_URL}/message`, {
+      const data = await fetchWithRetry(`${BACKEND_URL}/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,12 +109,6 @@ function App() {
         body: JSON.stringify({ content })
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // JSON 응답 파싱
-      const data = await response.json();
       console.log('서버 응답:', data);
 
       // 봇 응답 추가
@@ -91,15 +133,26 @@ function App() {
         errorMessage = '서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.';
       } else if (error.code === 'ETIMEDOUT') {
         errorMessage = '서버 응답 시간이 초과되었습니다. 다시 시도해주세요.';
+      } else if (error.message.includes('502')) {
+        errorMessage = '서버가 일시적으로 응답하지 않습니다. 잠시 후 다시 시도해주세요.';
       }
       
       setMessages(prev => [...prev, { 
         text: errorMessage, 
         sender: 'bot' 
       }]);
+      
+      setErrorAlert({ 
+        open: true, 
+        message: errorMessage 
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCloseAlert = () => {
+    setErrorAlert({ ...errorAlert, open: false });
   };
 
   return (
@@ -178,6 +231,18 @@ function App() {
           </Button>
         ))}
       </Box>
+      
+      {/* 오류 알림 */}
+      <Snackbar 
+        open={errorAlert.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseAlert} severity="error" sx={{ width: '100%' }}>
+          {errorAlert.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }
