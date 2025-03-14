@@ -6,8 +6,8 @@ import logging
 
 app = Flask(__name__)
 
-# CORS 설정을 단순화
-CORS(app, origins=["https://hyundai-chatbot.vercel.app"])
+# CORS 설정 제거 (수동으로 처리)
+# CORS(app, origins=["https://hyundai-chatbot.vercel.app"])
 
 # 차량 모델 데이터
 car_models = {
@@ -30,14 +30,26 @@ faq = {
 # /keyboard 엔드포인트 정의
 @app.route('/keyboard', methods=['GET'])
 def keyboard():
-    return jsonify({
+    response = jsonify({
         'type': 'buttons',
         'buttons': ['차량 정보', '자주 묻는 질문', '상담원 연결']
     })
+    response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
 
 # /message 엔드포인트 정의
 @app.route('/message', methods=['POST', 'OPTIONS'])
 def message():
+    # OPTIONS 요청 처리
+    if request.method == 'OPTIONS':
+        response = app.make_default_options_response()
+        response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        return response
+        
     # POST 요청 처리
     content = request.get_json()
     user_message = content.get('content', '')
@@ -71,7 +83,7 @@ def message():
         response_message = "무엇을 도와드릴까요?"
         response_buttons = ['차량 정보', '자주 묻는 질문', '상담원 연결']
 
-    response = {
+    response_data = {
         'message': {
             'text': response_message
         },
@@ -81,9 +93,20 @@ def message():
         }
     }
 
-    return jsonify(response)
+    response = jsonify(response_data)
+    response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
+
+# 루트 경로 추가
+@app.route('/', methods=['GET'])
+def index():
+    response = jsonify({"status": "ok", "message": "현대자동차 챗봇 API 서버가 실행 중입니다."})
+    response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
+    return response
 
 if __name__ == "__main__":
     import os
-    port = int(os.environ.get("PORT", 3001))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=True)

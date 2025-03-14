@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Container, 
   Paper, 
@@ -17,6 +17,31 @@ function App() {
   const [buttons, setButtons] = useState(['차량 정보', '자주 묻는 질문', '상담원 연결']);
   const [loading, setLoading] = useState(false);
   const BACKEND_URL = 'https://hyundai-chatbot-backend.onrender.com';
+  
+  // 초기 연결 확인
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          console.log('서버 연결 성공');
+        } else {
+          console.error('서버 연결 실패:', response.status);
+        }
+      } catch (error) {
+        console.error('서버 연결 오류:', error);
+      }
+    };
+    
+    checkConnection();
+  }, []);
+  
   // 메시지 전송 함수
   const sendMessage = async (content) => {
     try {
@@ -31,11 +56,8 @@ function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Origin': 'https://hyundai-chatbot.vercel.app'
+          'Accept': 'application/json'
         },
-        mode: 'cors',
-        credentials: 'omit',
         body: JSON.stringify({ content })
       });
 
@@ -45,6 +67,7 @@ function App() {
 
       // JSON 응답 파싱
       const data = await response.json();
+      console.log('서버 응답:', data);
 
       // 봇 응답 추가
       if (data && data.message) {
