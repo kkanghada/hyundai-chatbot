@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 
 function App() {
+  console.log("hyundai1");
   const [messages, setMessages] = useState([]);
   const [buttons, setButtons] = useState(['차량 정보', '자주 묻는 질문', '상담원 연결']);
   const [loading, setLoading] = useState(false);
