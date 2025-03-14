@@ -31,21 +31,31 @@ function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Origin': 'https://hyundai-chatbot.vercel.app'
         },
+        mode: 'cors',
+        credentials: 'omit',
         body: JSON.stringify({ content })
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // JSON 응답 파싱
+      const data = await response.json();
+
       // 봇 응답 추가
-      if (response.data && response.data.message) {
+      if (data && data.message) {
         setMessages(prev => [...prev, { 
-          text: response.data.message.text, 
+          text: data.message.text, 
           sender: 'bot' 
         }]);
 
         // 버튼 업데이트
-        if (response.data.keyboard && response.data.keyboard.buttons) {
-          setButtons(response.data.keyboard.buttons);
+        if (data.keyboard && data.keyboard.buttons) {
+          setButtons(data.keyboard.buttons);
         }
       } else {
         throw new Error('Invalid response format');
