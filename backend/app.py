@@ -5,33 +5,11 @@ import random
 import logging
 
 app = Flask(__name__)
-# 특정 프론트엔드 도메인만 허용하는 CORS 설정
-CORS(app)  # 모든 도메인 허용
-# CORS(app, resources={r"/*": {"origins": "https://hyundai-chatbot.vercel.app"}})
 
-# after_request 핸들러 (모든 응답에 CORS 헤더 추가)
-@app.after_request
-def after_request(response):
-    logging.info("after_request 호출됨")
-    response.headers.add('Access-Control-Allow-Origin', 'https://hyundai-chatbot.vercel.app')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-    return response
+# CORS 설정 (특정 도메인만 허용)
+CORS(app, origins=["http://localhost:3000", "https://hyundai-chatbot.vercel.app"])
 
-# 현대자동차 모델 리스트
-car_models = {
-    "승용": ["아반떼", "쏘나타", "그랜저", "아이오닉5", "아이오닉6"],
-    "SUV": ["베뉴", "코나", "투싼", "싼타페", "팰리세이드"],
-    "MPV": ["스타리아", "캐스퍼"],
-}
-
-# 자주 묻는 질문과 답변
-faq = {
-    "영업시간": "평일: 09:00-18:00\n토요일: 09:00-15:00\n일요일/공휴일: 휴무",
-    "위치": "가까운 현대자동차 지점은 홈페이지(https://www.hyundai.com)에서 확인하실 수 있습니다.",
-    "시승": "시승 예약은 현대자동차 홈페이지 또는 가까운 지점에서 가능합니다.",
-}
-
+# /keyboard 엔드포인트 정의
 @app.route('/keyboard', methods=['GET'])
 def keyboard():
     return jsonify({
@@ -39,13 +17,14 @@ def keyboard():
         'buttons': ['차량 정보', '자주 묻는 질문', '상담원 연결']
     })
 
-# /message 엔드포인트에 POST와 OPTIONS 메소드를 모두 허용
+# /message 엔드포인트 정의
 @app.route('/message', methods=['POST', 'OPTIONS'])
 def message():
-    # OPTIONS (preflight) 요청 처리
+    # OPTIONS 요청 처리 (preflight 요청)
     if request.method == 'OPTIONS':
         response = app.make_default_options_response()
-        response.headers['Access-Control-Allow-Origin'] = 'https://hyundai-chatbot.vercel.app'
+        # CORS 헤더가 중복되게 추가되지 않도록 설정
+        response.headers['Access-Control-Allow-Origin'] = 'https://hyundai-chatbot.vercel.app'  # 여기에 정확한 출처만 추가
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
         response.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
         return response
@@ -86,7 +65,7 @@ def message():
             'buttons': response_buttons
         }
     }
-    
+
     return jsonify(response)
 
 if __name__ == "__main__":
