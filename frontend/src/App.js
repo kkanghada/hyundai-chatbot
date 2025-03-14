@@ -22,10 +22,11 @@ function App() {
     try {
       setLoading(true);
       // 사용자 메시지 추가
+      console.log("********** hyundai2 **********");
       setMessages(prev => [...prev, { text: content, sender: 'user' }]);
 
       // 서버에 메시지 전송
-      console.log("********** hyundai2 **********");
+      console.log("********** hyundai3 **********");
       const response = await fetch(`${BACKEND_URL}/message`, {
         method: 'POST',
         headers: {
